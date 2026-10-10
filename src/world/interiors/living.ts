@@ -9,7 +9,7 @@ const PI = Math.PI;
 /** Open ground-floor space: kitchen (west), dining (centre), living (east) along the pool facade. */
 export async function furnishLiving(kit: InteriorKit): Promise<void> {
   await kit.preload([
-    'sofa_02', 'sofa_03', 'modern_arm_chair_01', 'mid_century_lounge_chair', 'modern_coffee_table_01', 'side_table_01',
+'modern_arm_chair_01', 'mid_century_lounge_chair', 'modern_coffee_table_01', 'side_table_01',
     'modern_wooden_cabinet', 'dining_chair_02', 'bar_chair_round_01', 'modern_ceiling_lamp_01', 'throw_pillows_01',
     'pachira_aquatica_01', 'potted_plant_04', 'calathea_orbifolia_01', 'ceramic_vase_01', 'ceramic_vase_03',
     'brass_vase_01', 'wooden_bowl_01', 'tea_set_01', 'wicker_basket_01', 'marble_bust_01', 'bronze_whale_statue',
@@ -122,6 +122,33 @@ function dining(kit: InteriorKit) {
   for (const dx of [-0.65, 0.65]) kit.model('modern_ceiling_lamp_01', { x: tx + dx, z: tz, y: LEVELS[0].ceiling - lampH, height: lampH });
 }
 
+/** Low contemporary corner sofa: main run along z facing +x, return arm running east at its north end. */
+function cornerSofa(kit: InteriorKit, fy: number, sx: number, tvz: number) {
+  const fabric = kit.mat({ color: 0xcfcbc4, roughness: 1 });
+  const legH = 0.14, frameH = 0.16, seatH = 0.12, backH = 0.3, backT = 0.2, depth = 0.95;
+  const x0 = sx - depth / 2, xE = sx + 1.4 + depth / 2;
+  const zS = tvz + 1.25, zJ = tvz - 1.25, zN = zJ - 0.95;
+  const seatY = fy + legH + frameH, backY = seatY + seatH;
+  // Frames (plinth boxes) and legs.
+  kit.box(fabric, depth, frameH, zS - zN, sx, fy + legH, (zS + zN) / 2, 0, 0.02);
+  kit.box(fabric, xE - (x0 + depth), frameH, zJ - zN, (x0 + depth + xE) / 2, fy + legH, (zJ + zN) / 2, 0, 0.02);
+  for (const [lx, lz] of [[x0 + 0.1, zS - 0.1], [x0 + 0.1, zN + 0.1], [x0 + depth - 0.1, zS - 0.1], [xE - 0.1, zN + 0.1], [xE - 0.1, zJ - 0.1], [x0 + depth + 0.5, zN + 0.1]]) {
+    kit.box(kit.blackMetal, 0.04, legH, 0.04, lx, fy, lz);
+  }
+  // Seat cushions: main run (2 along z) and return (2 along x).
+  const mw = (zS - zJ) / 2;
+  for (let i = 0; i < 2; i++) kit.box(fabric, depth - backT, seatH, mw - 0.01, x0 + backT + (depth - backT) / 2, seatY, zS - mw * (i + 0.5), 0, 0.03);
+  const rw = (xE - (x0 + depth)) / 2;
+  for (let i = 0; i < 2; i++) kit.box(fabric, rw - 0.01, seatH, zJ - zN - backT, x0 + depth + rw * (i + 0.5), seatY, (zJ + zN + backT) / 2, 0, 0.03);
+  // Low backs (west and north) with rectangular cushions.
+  kit.box(fabric, backT, backH, zS - zN, x0 + backT / 2, backY, (zS + zN) / 2, 0, 0.04);
+  kit.box(fabric, xE - x0 - backT, backH, backT, (x0 + backT + xE) / 2, backY, zN + backT / 2, 0, 0.04);
+  // Low arm at the south end of the main run.
+  kit.box(fabric, depth, 0.2, 0.16, sx, backY, zS - 0.08, 0, 0.04);
+  kit.collider(depth, 0.72, zS - zN, sx, fy, (zS + zN) / 2);
+  kit.collider(xE - (x0 + depth), 0.72, zJ - zN, (x0 + depth + xE) / 2, fy, (zJ + zN) / 2);
+}
+
 function living(kit: InteriorKit) {
   const { r, y: fy } = room('living');
   const east = r.x1 - M;
@@ -141,8 +168,7 @@ function living(kit: InteriorKit) {
 
   // Corner sofa facing the TV: sofa_03 on the west, sofa_02 return toward the pool.
   const sx = east - 5.0;
-  kit.model('sofa_03', { x: sx, z: tvz, height: 0.95, rot: PI / 2, solid: true });
-  kit.model('sofa_02', { x: sx + 0.95, z: tvz - 1.16 - 0.47, height: 0.8, rot: 0, solid: true });
+  cornerSofa(kit, fy, sx, tvz);
   kit.model('throw_pillows_01', { x: sx + 0.05, z: tvz + 0.7, y: at(0.42), height: 0.32, rot: PI / 2 + 0.3 });
   kit.model('throw_pillows_01', { x: sx + 0.05, z: tvz - 0.8, y: at(0.42), height: 0.3, rot: PI / 2 - 0.2 });
 

@@ -12,7 +12,10 @@ import { Exteriors } from '@/world/Exteriors';
 import { OutdoorFurniture } from '@/world/OutdoorFurniture';
 import { Cars } from '@/world/Cars';
 import { Interiors } from '@/world/interiors/Interiors';
-import { SITE, roomAt } from '@/data/floorplan';
+import { POOL, SITE, roomAt } from '@/data/floorplan';
+import { Doors } from '@/world/Doors';
+import { Audio } from '@/audio/Audio';
+import { surfaceAt } from '@/audio/surface';
 import { Input } from '@/player/Input';
 import { Character } from '@/player/Character';
 import { PlayerController } from '@/player/PlayerController';
@@ -39,7 +42,11 @@ export class Game {
   private terrain!: Terrain;
   private villa!: Villa;
   /** Phase 3 exterior modules (same lifecycle: ready / update / dispose). */
-  private outdoors: (Pool | Vegetation | Exteriors | OutdoorFurniture | Cars | Interiors)[] = [];
+  private outdoors: (Pool | Vegetation | Exteriors | OutdoorFurniture | Cars | Interiors | Doors)[] = [];
+  private doors!: Doors;
+  private readonly audio = new Audio();
+  private stopWatches: (() => void)[] = [];
+  private uiClock = 0;
   private player!: PlayerController;
   private character!: Character;
   private rig!: CameraRig;
@@ -51,6 +58,9 @@ export class Game {
     this.engine.onFps = (fps) => (this.store.fps = fps);
     this.input = new Input(canvas);
     this.input.onToggleView = () => this.toggleView();
+    this.input.onInteract = () => {
+      if (this.store.phase === 'playing' && this.doors) this.doors.interact(this.feet);
+    };
     canvas.addEventListener('click', () => {
       if (this.store.cameraMode === 'first' && !this.store.isTouch) this.input.requestPointerLock();
     });
@@ -74,12 +84,19 @@ export class Game {
     this.villa = new Villa(assets, this.physics);
     const profile = getProfile(store.quality);
     this.outdoors = [Pool, Vegetation, Exteriors, OutdoorFurniture, Cars, Interiors].map((M) => new M(assets, this.physics, profile));
+    this.doors = new Doors(assets, this.physics, profile);
+    this.outdoors.push(this.doors);
     const [hdr, gltf] = await Promise.all([assets.loadHDR(HDRI), assets.loadGLTF(CHARACTER), allLoaded]);
 
     this.env = new Environment(engine.scene, engine.renderer, hdr, getProfile(store.quality));
     this.lighting = new Lighting(engine.scene, profile);
     this.stopTod = watch(() => store.timeOfDay, (t) => this.applyTimeOfDay(t, false));
     this.applyTimeOfDay(store.timeOfDay, true);
+    this.stopWatches.push(
+      // AudioContext needs a user gesture: the "visit" click switches the phase to playing.
+      watch(() => store.phase, (p) => p === 'playing' && this.audio.start(), { immediate: true }),
+      watch(() => store.muted, (m) => this.audio.setMuted(m), { immediate: true }),
+    );
     await Promise.all(this.outdoors.map((o) => o.ready));
     engine.scene.add(this.terrain.group, this.villa.group, ...this.outdoors.map((o) => o.group));
 
@@ -100,6 +117,7 @@ export class Game {
   private applyTimeOfDay(t: TimeOfDay, instant: boolean) {
     this.env.setTimeOfDay(t, instant);
     this.lighting.setTimeOfDay(t);
+    this.audio.setTimeOfDay(t);
     this.engine.setTimeOfDay(t);
   }
 
@@ -126,6 +144,12 @@ export class Game {
     const playing = this.store.phase === 'playing';
     this.input.update();
 
+    const tp = this.store.pendingTeleport;
+    if (tp) {
+      this.store.pendingTeleport = null;
+      this.debugTeleport(tp.x, tp.y, tp.z, tp.yaw, tp.pitch);
+    }
+
     const wish = new THREE.Vector3();
     if (playing) {
       const look = this.input.consumeLook();
@@ -141,8 +165,25 @@ export class Game {
     this.env.update(dt);
     this.env.follow(this.feet);
     this.lighting.update(dt, elapsed);
-    for (const o of this.outdoors) o.update(dt, elapsed);
-    this.store.roomName = roomAt(this.feet.x, this.feet.y, this.feet.z)?.name ?? 'Jardin';
+    for (const o of this.outdoors) {
+      if (o instanceof Interiors) o.setViewer(this.feet);
+      o.update(dt, elapsed);
+    }
+    const room = roomAt(this.feet.x, this.feet.y, this.feet.z);
+    this.store.roomName = room?.name ?? 'Jardin';
+    const { x, y, z } = this.feet;
+    const pr = POOL.rect;
+    const poolDistance = Math.hypot(Math.max(pr.x0 - x, 0, x - pr.x1), Math.max(pr.z0 - z, 0, z - pr.z1));
+    const speed = playing ? this.player.horizontalSpeed : 0;
+    this.audio.update(dt, this.feet, speed, this.input.run, surfaceAt(x, y, z), !!room, poolDistance);
+
+    // HUD state at ~10 Hz to keep Vue reactivity cheap.
+    this.uiClock += dt;
+    if (this.uiClock >= 0.1) {
+      this.uiClock = 0;
+      this.store.player = { x, z, level: room?.level ?? (y > 3 ? 1 : 0), yaw: this.rig.yaw };
+      this.store.interactPrompt = (playing && this.doors.promptAt(this.feet)) || '';
+    }
 
     if (playing) {
       this.rig.update(dt, this.feet);
@@ -161,7 +202,10 @@ export class Game {
 
   dispose() {
     this.stopTod?.();
+    for (const stop of this.stopWatches) stop();
+    this.audio.dispose();
     this.lighting?.dispose();
+    this.env?.dispose();
     this.input.dispose();
     this.player?.dispose();
     this.villa?.dispose();

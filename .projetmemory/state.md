@@ -13,14 +13,16 @@ _Mis à jour : 2026-10-10 (Phase 5)_
 
 - Phase 5 (3 agents Sonnet, non commitée) : `engine/PostFX.ts` (postprocessing : N8AO, bloom, vignette, AgX, SMAA ; `quality.postfx`, low = rendu direct), `engine/timeOfDay.ts`, `Environment.setTimeOfDay` (jour/coucher/nuit, transition lissée), `world/Lighting.ts` (plafonniers RectArea 12 medium / 20 ultra, 8 Point en low ; 6 lumières ext. nuit : balises, spots façade, piscine), sélecteur HUD + `store.timeOfDay`, verre ior 1.5 (pas de transmission, trop cher). Typings `src/types/n8ao.d.ts` (node_modules illisible). `shots.mjs` : `SHOTS_VIEWS=a,b SHOTS_TOD=night`. Captures `screenshots/phase5/`.
 
+- Phase 6 (4 agents) : `world/Doors.ts` (vantaux door/entrance pivotante, collider suivant la rotation, E à <1.8 m, `promptAt`), `audio/Audio.ts` + `surface.ts` (Web Audio 100 % procédural : vent, oiseaux/grillons, clapotis, pas par surface, filtre intérieur), UI `Minimap.vue`/`TeleportMenu.vue`/`GuidedTour.vue` + `data/tour.ts` (store : player, interactPrompt, muted, pendingTeleport, tourIndex), canapé d'angle procédural, `interiors/details.ts` (plinthes, interrupteurs, prises). Game.ts : HUD à 10 Hz, audio démarré au passage en `playing`.
+- Phase 7 (3 agents) : fusion intérieurs par matériau × pièce + `Interiors.setViewer` (masque > 35 m), HDRI `belfast_sunset_puresky` / `satara_night_no_lamps` chargées à la demande, variation macro pelouse, README complet.
+
 ## En cours
-- Prochaine étape : **Phase 6** (portes, sons, UI, minimap, visite guidée).
+- Toutes les phases du cahier des charges codées. Restes : interaction portes/sons/visite guidée non testés en vrai navigateur ; fps headless 15-30 (post-FX + culling à mesurer en vrai GPU) ; personnage Soldier provisoire ; mobile réel non testé ; miroirs Reflector et lightmaps non faits.
 - Phase 5 restes : ciel coucher de soleil = HDRI de jour assombri (pas de HDRI sunset/nuit dédiée) ; fps headless 40-55 → 22-36 avec post-FX medium ; miroirs `Reflector` et lightmaps non faits ; plafonds sombres la nuit (pas de rebond).
 - Phases 3-fix + 4 poussées sur main (36dbdbb) ; remote = ChrysDavid/Ma-vie-de-reve.
 - Perf (2 agents, f8142f7) : detectQuality() auto low/medium (localStorage mvdr.quality, store.setQuality), DPR plafonné + adaptatif (0.6→cap), pause onglet caché ; Vegetation chunkée 14 m, haies espacées par niveau, herbe 0/5k/15k. Mesure : 3,8 M → 1,3 M tris, 26-28 → 40-55 fps (headless). Reste : intérieurs fusionnés ≈ 800k tris sans culling (fusionner par pièce/niveau).
 
 ## À reprendre plus tard
-- Canapés sofa_02/sofa_03 = Chesterfield classiques, peu contemporains → canapé d'angle procédural moderne.
 - Test escalier headless : feet y≈2.5 (fps bas en headless), à revérifier en vrai navigateur.
 - Meubles placés sans test de collision en jeu réel.
 
@@ -38,9 +40,9 @@ _Mis à jour : 2026-10-10 (Phase 5)_
 - [x] 2 Gros œuvre (floorplan, murs, sols, escalier, toiture)
 - [x] 3 Extérieurs (piscine, jardin, végétation vent, voitures)
 - [x] 4 Intérieurs (ameublement, déco)
-- [ ] 5 Éclairage avancé, lightmaps, reflets, post-FX, jour/nuit
-- [ ] 6 Interactions, sons, UI, minimap, visite guidée
-- [ ] 7 Optimisation, qualité, mobile, README
+- [x] 5 Éclairage avancé, lightmaps, reflets, post-FX, jour/nuit
+- [x] 6 Interactions, sons, UI, minimap, visite guidée
+- [x] 7 Optimisation, qualité, mobile, README
 
 ## Bloqué
 - Rien.

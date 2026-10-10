@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Assets } from '@/engine/assets';
 import type { QualityProfile } from '@/engine/quality';
 import type { PhysicsWorld } from '@/physics/PhysicsWorld';
-import { LEVELS, ROOMS, type Rect } from '@/data/floorplan';
+import { LEVELS, ROOMS, roomAt, type Rect } from '@/data/floorplan';
 import { pbrMaterial } from '../materials';
 
 const Y = new THREE.Vector3(0, 1, 0);
@@ -159,7 +159,10 @@ export class InteriorKit {
    */
   finalize() {
     this.group.updateMatrixWorld(true);
-    const byMat = new Map<THREE.Material, THREE.BufferGeometry[]>();
+    const byMat = new Map<string, { mat: THREE.Material; list: THREE.BufferGeometry[] }>();
+    const matIds = new Map<THREE.Material, number>();
+    const c = new THREE.Vector3();
+    const bb = new THREE.Box3();
     this.group.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh || Array.isArray(m.material)) return;
@@ -174,19 +177,39 @@ export class InteriorKit {
       if (!g.getAttribute('uv')) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(n * 2), 2));
       g.setIndex(src.index ? Array.from(src.index.array) : Array.from({ length: n }, (_, i) => i));
       g.applyMatrix4(m.matrixWorld);
-      const list = byMat.get(m.material) ?? [];
-      list.push(g);
-      byMat.set(m.material, list);
+      g.computeBoundingBox();
+      g.boundingBox!.getCenter(c);
+      const lvl = c.y > (LEVELS[0].ceiling + LEVELS[1].floor) / 2 ? 1 : 0;
+      const rm = roomAt(c.x, c.y, c.z);
+      const cell = rm ? `r:${rm.id}` : `g:${lvl}:${Math.floor(c.x / 6)}:${Math.floor(c.z / 6)}`;
+      let mid = matIds.get(m.material);
+      if (mid === undefined) { mid = matIds.size; matIds.set(m.material, mid); }
+      const key = `${mid}|${cell}`;
+      const e = byMat.get(key) ?? { mat: m.material, list: [] };
+      e.list.push(g);
+      byMat.set(key, e);
     });
     for (const g of this.geos) g.dispose();
     this.geos.length = 0;
     this.group.clear();
-    for (const [mat, list] of byMat) {
+    for (const { mat, list } of byMat.values()) {
       const merged = mergeGeometries(list);
       for (const g of list) g.dispose();
       if (!merged) continue;
-      this.add(merged, mat, 0, 0, 0);
+      merged.computeBoundingBox();
+      merged.computeBoundingSphere();
+      bb.copy(merged.boundingBox!);
+      const mesh = this.add(merged, mat, 0, 0, 0);
+      mesh.userData.box = bb.clone();
       if (!this.mats.includes(mat)) this.mats.push(mat);
+    }
+  }
+
+  /** Hides merged meshes whose bbox is farther than `range` m from `pos` (also skips their shadow pass). */
+  cull(pos: THREE.Vector3, range: number) {
+    for (const o of this.group.children) {
+      const b = o.userData.box as THREE.Box3 | undefined;
+      if (b) o.visible = b.distanceToPoint(pos) <= range;
     }
   }
 

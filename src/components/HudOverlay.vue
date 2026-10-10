@@ -3,7 +3,11 @@ import { useGameStore } from '@/stores/game';
 import type { Game } from '@/Game';
 import { TIME_OF_DAY_LABELS, type TimeOfDay } from '@/engine/timeOfDay';
 
-const props = defineProps<{ game: Game }>();
+import Minimap from './Minimap.vue';
+import TeleportMenu from './TeleportMenu.vue';
+import GuidedTour from './GuidedTour.vue';
+
+const props =defineProps<{ game: Game }>();
 const store = useGameStore();
 const times = Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[];
 </script>
@@ -17,6 +21,15 @@ const times = Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[];
         {{ store.cameraMode === 'third' ? '1re personne' : '3e personne' }}
       </button>
     </div>
+    <div class="left-tools">
+      <TeleportMenu />
+      <GuidedTour />
+      <button class="glass pill" :title="store.muted ? 'Activer le son' : 'Couper le son'" @click="store.toggleMute()">
+        {{ store.muted ? '🔇' : '🔈' }}
+      </button>
+    </div>
+    <Minimap />
+    <div v-if="store.interactPrompt" class="prompt glass">{{ store.interactPrompt }}</div>
     <div class="tod glass">
       <button v-for="t in times" :key="t" :class="{ on: store.timeOfDay === t }" @click="store.setTimeOfDay(t)">
         {{ TIME_OF_DAY_LABELS[t] }}
@@ -49,6 +62,26 @@ const times = Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[];
   align-items: center;
   gap: 10px;
   pointer-events: none;
+}
+.left-tools {
+  position: absolute;
+  top: calc(max(16px, env(safe-area-inset-top)) + 52px);
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 50vw;
+}
+.left-tools .pill { cursor: pointer; border: 0; color: inherit; }
+.prompt {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 .fps { font-size: 0.7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .pill { padding: 8px 14px; border-radius: 999px; font-size: 0.75rem; letter-spacing: 0.05em; }

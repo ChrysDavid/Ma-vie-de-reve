@@ -57,5 +57,7 @@
 | Modèle wicker_basket_01 | `public/assets/models/interior/wicker_basket_01.glb` | Poly Haven | https://polyhaven.com/a/wicker_basket_01 | CC0 |
 | Modèle wooden_bowl_01 | `public/assets/models/interior/wooden_bowl_01.glb` | Poly Haven | https://polyhaven.com/a/wooden_bowl_01 | CC0 |
 | Modèle wooden_display_shelves_01 | `public/assets/models/interior/wooden_display_shelves_01.glb` | Poly Haven | https://polyhaven.com/a/wooden_display_shelves_01 | CC0 |
+| HDRI belfast_sunset_puresky (2k) | `public/assets/hdri/belfast_sunset_puresky_2k.hdr` | Poly Haven (Greg Zaal) | https://polyhaven.com/a/belfast_sunset_puresky | CC0 |
+| HDRI satara_night_no_lamps (1k) | `public/assets/hdri/satara_night_no_lamps_1k.hdr` | Poly Haven (Greg Zaal) | https://polyhaven.com/a/satara_night_no_lamps | CC0 |
 
 <!-- Tout asset ajouté doit figurer ici dans la même tâche. -->

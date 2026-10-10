@@ -14,12 +14,24 @@ export class Terrain {
     this.material = pbrMaterial(assets, 'leafy_grass', { repeat: 1 / 2.5, color: 0xd8e0c8 });
     // Break tile repetition: blend in a second, larger-scale sample of the same albedo.
     this.material.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <map_fragment>',
-        `vec4 texA = texture2D(map, vMapUv);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vTerrXZ;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvTerrXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec2 vTerrXZ;')
+        .replace(
+          '#include <map_fragment>',
+          `vec4 texA = texture2D(map, vMapUv);
         vec4 texB = texture2D(map, vMapUv * 0.173 + vec2(0.37, 0.61));
-        diffuseColor *= mix(texA, texB, 0.45) * (0.85 + 0.3 * texB.g);`,
-      );
+        vec4 texC = texture2D(map, vMapUv * 0.047 + vec2(0.71, 0.23));
+        // Low-frequency world-space noise (sum of sines) drives hue/brightness and 2nd-scale mix.
+        vec2 q = vTerrXZ;
+        float n = 0.5 + 0.25 * sin(q.x * 0.045 + sin(q.y * 0.031) * 2.0) + 0.25 * sin(q.y * 0.057 + sin(q.x * 0.023 + 1.3) * 2.0);
+        float n2 = 0.5 + 0.5 * sin(q.x * 0.11 + q.y * 0.083 + sin(q.x * 0.07) * 1.5);
+        vec4 mixed = mix(mix(texA, texB, 0.45), texC, 0.25 + 0.35 * n);
+        vec3 tint = mix(vec3(0.86, 0.95, 0.78), vec3(1.08, 1.02, 0.86), n2);
+        diffuseColor *= mixed * vec4(tint, 1.0) * (0.78 + 0.4 * n) * (0.85 + 0.3 * texB.g);`,
+        );
     };
     // 1 m thick slab (top at y = 0) with a rectangular hole for the pool and its catch basin.
     const s = SITE.halfSize + 10;
