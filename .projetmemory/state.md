@@ -18,6 +18,8 @@ _Mis à jour : 2026-10-10 (Phase 5)_
 
 - Correctifs végétation/plantes : packs Poly Haven multi-variantes (pachira, calathea : `_a.._e` côte à côte) → `kit.model` ne garde qu'une variante (`Place.variant`, sinon choisie selon x/z) — c'était la cause des feuilles éparpillées/à travers les murs, plantes et meubles flottants et colliders géants ; `Place.pot` (pot graphite + terre) pour pachira. Pelouse : shader Terrain recolore la texture en vert gazon (luminance seule), touffes courtes denses sans DoubleSide (faces arrière noires), massifs = buis procéduraux (`boxwood`, texture feuillage canvas). Personnage : `adventurer.glb` (Quaternius CC0, low-poly stylisé). Miroirs `Reflector` (medium/ultra, max 6, pièce du joueur) + descentes EP/chéneau.
 
+- Mobile : joystick nipplejs statique toujours visible (à droite, 190 px), bouton d'action contextuel à gauche (libellé = `store.interactPrompt` sans « E : », apparaît seulement à portée), mini-carte 108 px en tactile. Testé en émulation Pixel 7 paysage (porte ouverte au tap).
+
 ## En cours
 - Toutes les phases du cahier des charges codées. Restes : interaction portes/sons/visite guidée non testés en vrai navigateur ; fps headless 15-30 (post-FX + culling à mesurer en vrai GPU) ; personnage Quaternius low-poly (pas photoréaliste) ; mobile réel non testé ; miroirs Reflector et lightmaps non faits.
 - Phase 5 restes : ciel coucher de soleil = HDRI de jour assombri (pas de HDRI sunset/nuit dédiée) ; fps headless 40-55 → 22-36 avec post-FX medium ; miroirs `Reflector` et lightmaps non faits ; plafonds sombres la nuit (pas de rebond).

@@ -81,7 +81,9 @@ function onClick(e: MouseEvent) {
   align-items: flex-start;
   gap: 6px;
 }
-.minimap.touch { bottom: 120px; }
+.minimap.touch { bottom: 104px; }
+/* Phones (landscape is only ~390 px tall): small map so it clears the top buttons and the action button. */
+.minimap.touch canvas { width: 108px; height: 108px; }
 canvas { width: 180px; height: 180px; border-radius: 12px; cursor: pointer; touch-action: manipulation; }
 .tog { padding: 4px 12px; border-radius: 999px; font-size: 0.72rem; cursor: pointer; border: 0; color: inherit; }
 @media (max-width: 600px) { canvas { width: 140px; height: 140px; } }

@@ -29,7 +29,7 @@ const times = Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[];
       </button>
     </div>
     <Minimap />
-    <div v-if="store.interactPrompt" class="prompt glass">{{ store.interactPrompt }}</div>
+    <div v-if="store.interactPrompt && !store.isTouch" class="prompt glass">{{ store.interactPrompt }}</div>
     <div class="tod glass">
       <button v-for="t in times" :key="t" :class="{ on: store.timeOfDay === t }" @click="store.setTimeOfDay(t)">
         {{ TIME_OF_DAY_LABELS[t] }}
