@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game';
 import type { Game } from '@/Game';
+import { TIME_OF_DAY_LABELS, type TimeOfDay } from '@/engine/timeOfDay';
 
 const props = defineProps<{ game: Game }>();
 const store = useGameStore();
+const times = Object.keys(TIME_OF_DAY_LABELS) as TimeOfDay[];
 </script>
 
 <template>
@@ -13,6 +15,11 @@ const store = useGameStore();
       <span class="fps">{{ store.fps }} fps</span>
       <button class="glass pill" @click="props.game.toggleView()">
         {{ store.cameraMode === 'third' ? '1re personne' : '3e personne' }}
+      </button>
+    </div>
+    <div class="tod glass">
+      <button v-for="t in times" :key="t" :class="{ on: store.timeOfDay === t }" @click="store.setTimeOfDay(t)">
+        {{ TIME_OF_DAY_LABELS[t] }}
       </button>
     </div>
     <div v-if="!store.isTouch" class="hint glass">
@@ -45,6 +52,27 @@ const store = useGameStore();
 }
 .fps { font-size: 0.7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .pill { padding: 8px 14px; border-radius: 999px; font-size: 0.75rem; letter-spacing: 0.05em; }
+.tod {
+  position: absolute;
+  top: calc(max(16px, env(safe-area-inset-top)) + 52px);
+  right: 16px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+}
+.tod button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.tod button.on { background: rgba(255, 255, 255, 0.25); color: inherit; }
 .hint {
   position: absolute;
   bottom: 16px;

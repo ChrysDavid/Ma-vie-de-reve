@@ -50,7 +50,8 @@ export class Finishes {
   readonly aluminium = new THREE.MeshStandardMaterial({ color: 0x2a2b2d, metalness: 0.75, roughness: 0.35 });
   readonly trim = new THREE.MeshStandardMaterial({ color: 0xefece6, roughness: 0.45 });
   readonly glass = new THREE.MeshPhysicalMaterial({
-    color: 0xeef4f2, metalness: 0, roughness: 0.03, ior: 1.5, specularIntensity: 1,
+    color: 0xeef4f2, metalness: 0, roughness: 0.03, ior: 1.5, specularIntensity: 1, envMapIntensity: 1.6,
+    // Fallback: no `transmission` (extra full-scene pass per frame); blended opacity + env reflections.
     transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide,
   });
 

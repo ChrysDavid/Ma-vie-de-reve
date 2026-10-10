@@ -1,6 +1,6 @@
 # État d'avancement
 
-_Mis à jour : 2026-10-10 (fin Phase 4)_
+_Mis à jour : 2026-10-10 (Phase 5)_
 
 ## Fait
 - Système mémoire/contexte Claude Code (`CLAUDE.md`, `.claude/`, `.projetmemory/`).
@@ -11,9 +11,13 @@ _Mis à jour : 2026-10-10 (fin Phase 4)_
 - Audit Phase 3 : pelouse `aerial_grass_rock` (terre) remplacée par `leafy_grass` + anti-répétition shader (Terrain.ts).
 - Phase 4 (3 agents Sonnet) : `src/world/interiors/` — `kit.ts` (preload/model/box/cyl/collider + `finalize()` = fusion par matériau : 1447→470 meshes, fps 14→28), `living.ts` (salon/cuisine/salle à manger), `ground.ts` (hall, bureau, ch.4, douches, vestiaire, cellier, buanderie), `upper.ts` (suite, SdB, dressing, ch.2/3, douches, salon haut, terrasse, balcon). 36 modèles Poly Haven CC0 (`npm run assets:models` → GLB WebP 512 px, `npm run assets:simplify` → ≤6k tris) : 11 Mo. Captures `screenshots/phase4/`.
 
+- Phase 5 (3 agents Sonnet, non commitée) : `engine/PostFX.ts` (postprocessing : N8AO, bloom, vignette, AgX, SMAA ; `quality.postfx`, low = rendu direct), `engine/timeOfDay.ts`, `Environment.setTimeOfDay` (jour/coucher/nuit, transition lissée), `world/Lighting.ts` (plafonniers RectArea 12 medium / 20 ultra, 8 Point en low ; 6 lumières ext. nuit : balises, spots façade, piscine), sélecteur HUD + `store.timeOfDay`, verre ior 1.5 (pas de transmission, trop cher). Typings `src/types/n8ao.d.ts` (node_modules illisible). `shots.mjs` : `SHOTS_VIEWS=a,b SHOTS_TOD=night`. Captures `screenshots/phase5/`.
+
 ## En cours
-- Prochaine étape : **Phase 5** (éclairage intérieur, lumières, reflets, post-FX, jour/nuit).
+- Prochaine étape : **Phase 6** (portes, sons, UI, minimap, visite guidée).
+- Phase 5 restes : ciel coucher de soleil = HDRI de jour assombri (pas de HDRI sunset/nuit dédiée) ; fps headless 40-55 → 22-36 avec post-FX medium ; miroirs `Reflector` et lightmaps non faits ; plafonds sombres la nuit (pas de rebond).
 - Phases 3-fix + 4 poussées sur main (36dbdbb) ; remote = ChrysDavid/Ma-vie-de-reve.
+- Perf (2 agents, f8142f7) : detectQuality() auto low/medium (localStorage mvdr.quality, store.setQuality), DPR plafonné + adaptatif (0.6→cap), pause onglet caché ; Vegetation chunkée 14 m, haies espacées par niveau, herbe 0/5k/15k. Mesure : 3,8 M → 1,3 M tris, 26-28 → 40-55 fps (headless). Reste : intérieurs fusionnés ≈ 800k tris sans culling (fusionner par pièce/niveau).
 
 ## À reprendre plus tard
 - Canapés sofa_02/sofa_03 = Chesterfield classiques, peu contemporains → canapé d'angle procédural moderne.

@@ -39,6 +39,11 @@ const VIEWS = [
   ['dressing', -7.8, 3.45, -1.5, Math.PI / 2, 0.25],
 ];
 
+// Optional filters: SHOTS_VIEWS=front,living (subset, skips movement tests), SHOTS_TOD=sunset|night.
+const only = process.env.SHOTS_VIEWS?.split(',');
+const tod = process.env.SHOTS_TOD;
+const views = only ? VIEWS.filter(([n]) => only.includes(n)) : VIEWS;
+
 const server = await createServer({ server: { port: 5199, strictPort: true }, logLevel: 'error' });
 await server.listen();
 const browser = await chromium.launch({ args: ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] });
@@ -56,11 +61,16 @@ try {
   await page.screenshot({ path: join(outDir, '00-home.png') });
 
   await page.click('button.visit');
-  for (const [name, x, y, z, yaw, pitch] of VIEWS) {
+  if (tod) {
+    await page.evaluate((t) => window.__store.setTimeOfDay(t), tod);
+    await page.waitForTimeout(5000); // let the eased transition settle
+  }
+  for (const [name, x, y, z, yaw, pitch] of views) {
     await page.evaluate(([x, y, z, yaw, pitch]) => window.__game.debugTeleport(x, y, z, yaw, pitch), [x, y, z, yaw, pitch]);
     await page.waitForTimeout(1200);
-    await page.screenshot({ path: join(outDir, `${name}.png`), timeout: 120000 });
+    await page.screenshot({ path: join(outDir, `${tod ? tod + '-' : ''}${name}.png`), timeout: 120000 });
   }
+  if (!only) {
 
   // Climb the hall stair (first floor at 3.45 m) to check autostep.
   await page.evaluate(() => window.__game.debugTeleport(-0.9, 0.15, 6.45, 0, 0.3));
@@ -86,6 +96,7 @@ try {
   await page.waitForTimeout(600);
   await page.screenshot({ path: join(outDir, 'first-person.png') });
 
+  }
   const info = await page.evaluate(() => ({ fps: window.__store.fps }));
   console.log(`ok: ${outDir} — fps ${info.fps}`);
 } finally {

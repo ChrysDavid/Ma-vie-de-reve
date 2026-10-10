@@ -17,6 +17,9 @@ import { Input } from '@/player/Input';
 import { Character } from '@/player/Character';
 import { PlayerController } from '@/player/PlayerController';
 import { CameraRig } from '@/player/CameraRig';
+import { watch } from 'vue';
+import { Lighting } from '@/world/Lighting';
+import type { TimeOfDay } from '@/engine/timeOfDay';
 import type { useGameStore } from '@/stores/game';
 
 type GameStore = ReturnType<typeof useGameStore>;
@@ -31,6 +34,8 @@ export class Game {
   private readonly engine: Engine;
   private physics!: PhysicsWorld;
   private env!: Environment;
+  private lighting!: Lighting;
+  private stopTod?: () => void;
   private terrain!: Terrain;
   private villa!: Villa;
   /** Phase 3 exterior modules (same lifecycle: ready / update / dispose). */
@@ -72,6 +77,9 @@ export class Game {
     const [hdr, gltf] = await Promise.all([assets.loadHDR(HDRI), assets.loadGLTF(CHARACTER), allLoaded]);
 
     this.env = new Environment(engine.scene, engine.renderer, hdr, getProfile(store.quality));
+    this.lighting = new Lighting(engine.scene, profile);
+    this.stopTod = watch(() => store.timeOfDay, (t) => this.applyTimeOfDay(t, false));
+    this.applyTimeOfDay(store.timeOfDay, true);
     await Promise.all(this.outdoors.map((o) => o.ready));
     engine.scene.add(this.terrain.group, this.villa.group, ...this.outdoors.map((o) => o.group));
 
@@ -87,6 +95,12 @@ export class Game {
 
     engine.onFrame((dt, t) => this.update(dt, t));
     engine.start();
+  }
+
+  private applyTimeOfDay(t: TimeOfDay, instant: boolean) {
+    this.env.setTimeOfDay(t, instant);
+    this.lighting.setTimeOfDay(t);
+    this.engine.setTimeOfDay(t);
   }
 
   toggleView() {
@@ -124,7 +138,9 @@ export class Game {
     this.player.getPosition(alpha, this.feet);
     this.character.root.position.copy(this.feet);
     this.character.update(dt, this.player.horizontalSpeed, this.player.horizontalVelocity);
+    this.env.update(dt);
     this.env.follow(this.feet);
+    this.lighting.update(dt, elapsed);
     for (const o of this.outdoors) o.update(dt, elapsed);
     this.store.roomName = roomAt(this.feet.x, this.feet.y, this.feet.z)?.name ?? 'Jardin';
 
@@ -144,6 +160,8 @@ export class Game {
   }
 
   dispose() {
+    this.stopTod?.();
+    this.lighting?.dispose();
     this.input.dispose();
     this.player?.dispose();
     this.villa?.dispose();

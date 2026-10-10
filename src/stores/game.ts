@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { saveQuality, type QualityLevel } from '@/engine/quality';
 
+import type { TimeOfDay } from '@/engine/timeOfDay';
+
 export type GamePhase = 'loading' | 'home' | 'playing';
 export type CameraMode = 'third' | 'first';
 
@@ -15,8 +17,12 @@ export const useGameStore = defineStore('game', {
     isTouch: false,
     roomName: 'Jardin',
     fps: 0,
+    timeOfDay: 'day' as TimeOfDay,
   }),
   actions: {
+    setTimeOfDay(t: TimeOfDay) {
+      this.timeOfDay = t;
+    },
     /** Sets the quality level and persists the user's choice. */
     setQuality(level: QualityLevel) {
       this.quality = level;

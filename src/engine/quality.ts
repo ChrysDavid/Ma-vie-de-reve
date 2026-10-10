@@ -7,12 +7,13 @@ export interface QualityProfile {
   shadowMapSize: number;
   shadowDistance: number;
   textureRes: '1k' | '2k';
+  postfx: { ao: boolean; bloom: boolean; smaa: boolean };
 }
 
 export const QUALITY_PROFILES: Record<QualityLevel, QualityProfile> = {
-  low: { level: 'low', pixelRatio: 1, antialias: false, shadowMapSize: 512, shadowDistance: 20, textureRes: '1k' },
-  medium: { level: 'medium', pixelRatio: 1, antialias: false, shadowMapSize: 1024, shadowDistance: 30, textureRes: '1k' },
-  ultra: { level: 'ultra', pixelRatio: 1.5, antialias: true, shadowMapSize: 2048, shadowDistance: 40, textureRes: '2k' },
+  low: { level: 'low', pixelRatio: 1, antialias: false, shadowMapSize: 512, shadowDistance: 20, textureRes: '1k', postfx: { ao: false, bloom: false, smaa: false } },
+  medium: { level: 'medium', pixelRatio: 1, antialias: false, shadowMapSize: 1024, shadowDistance: 30, textureRes: '1k', postfx: { ao: true, bloom: true, smaa: true } },
+  ultra: { level: 'ultra', pixelRatio: 1.5, antialias: true, shadowMapSize: 2048, shadowDistance: 40, textureRes: '2k', postfx: { ao: true, bloom: true, smaa: true } },
 };
 
 const STORAGE_KEY = 'mvdr.quality';

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import type { QualityProfile } from './quality';
+import { PostFX } from './PostFX';
+import type { TimeOfDay } from './timeOfDay';
 
 export type FrameCallback = (dt: number, elapsed: number) => void;
 
@@ -23,6 +25,7 @@ export class Engine {
     if (document.hidden) this.pause();
     else if (this.running) this.resume();
   };
+  readonly postfx?: PostFX;
   onFps?: (fps: number) => void;
 
   constructor(readonly canvas: HTMLCanvasElement, quality: QualityProfile) {
@@ -38,6 +41,10 @@ export class Engine {
     this.timer.connect(document);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
+    const fx = quality.postfx;
+    if (fx.ao || fx.bloom || fx.smaa) {
+      this.postfx = new PostFX(this.renderer, this.scene, this.camera, quality, this.canvas.clientWidth || 1, this.canvas.clientHeight || 1);
+    }
     this.resize();
     document.addEventListener('visibilitychange', this.onVisibility);
   }
@@ -87,7 +94,8 @@ export class Engine {
     const dt = Math.min(this.timer.getDelta(), 0.1);
     const elapsed = this.timer.getElapsed();
     for (const cb of this.callbacks) cb(dt, elapsed);
-    this.renderer.render(this.scene, this.camera);
+    if (this.postfx) this.postfx.render(dt);
+    else this.renderer.render(this.scene, this.camera);
     this.adapt(dt, elapsed);
     this.fpsFrames++;
     this.fpsTime += dt;
@@ -105,12 +113,18 @@ export class Engine {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.postfx?.setSize(w, h);
+  }
+
+  setTimeOfDay(t: TimeOfDay) {
+    this.postfx?.setTimeOfDay(t);
   }
 
   dispose() {
     document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
+    this.postfx?.dispose();
     this.timer.dispose();
     this.renderer.dispose();
   }
