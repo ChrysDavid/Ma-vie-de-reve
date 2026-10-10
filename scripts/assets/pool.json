@@ -1,0 +1,7 @@
+{
+  "textures": ["floor_tiles_09"],
+  "models": [
+    { "url": "https://raw.githubusercontent.com/mrdoob/three.js/r170/examples/textures/water/Water_1_M_Normal.jpg", "out": "textures/water/Water_1_M_Normal.jpg" },
+    { "url": "https://raw.githubusercontent.com/mrdoob/three.js/r170/examples/textures/water/Water_2_M_Normal.jpg", "out": "textures/water/Water_2_M_Normal.jpg" }
+  ]
+}

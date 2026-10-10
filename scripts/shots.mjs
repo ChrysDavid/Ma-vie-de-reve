@@ -11,11 +11,28 @@ mkdirSync(outDir, { recursive: true });
 
 // [name, x, y, z, yaw, pitch, actions]
 const VIEWS = [
-  ['spawn', 0, 0, 3, Math.PI, 0.25],
-  ['stairs', 6, 0, -6.5, Math.PI, 0.3],
-  // Player just behind the wall, camera boom points through it: must be pulled in.
-  ['wall-camera', -2, 0, -10.6, 0, 0.2],
-  ['deck', 0, 0, 9, Math.PI, 0.35],
+  ['front', 1, 0, 17, 0, 0.12],
+  ['front-left', -16, 0, 14, -0.75, 0.15],
+  ['back', 0, 0, -20, Math.PI, 0.12],
+  ['back-right', 16, 0, -18, 2.4, 0.15],
+  ['pool', 0, 0.13, -9, Math.PI, 0.35],
+  ['pool-edge', -9, 0.13, -24, -2.5, 0.25],
+  ['garden', -20, 0, -30, 2.6, 0.2],
+  ['firepit', -15, 0, -22, 2.3, 0.4],
+  ['outdoor-kitchen', 18, 0.13, -4, 0, 0.3],
+  ['carport', 18, 0.13, 22, 0, 0.25],
+  ['gate', 10, 0, 26, -2.3, 0.15],
+  ['fountain', -8, 0, 23, 0, 0.3],
+  ['hall', 1.5, 0.15, 4, 0, 0.2],
+  ['hall-stair', 1.8, 0.15, 1.5, Math.PI - 0.5, 0.15],
+  ['living', 8, 0.15, -3, Math.PI / 2, 0.2],
+  ['kitchen', -2, 0.15, -4, Math.PI / 2, 0.2],
+  ['bedroom4', -3, 0.15, 5, Math.PI / 2, 0.2],
+  ['upper-lounge', 0, 3.45, -2, -Math.PI / 2, 0.2],
+  ['gallery', 1.5, 3.45, -0.5, Math.PI, 0.35],
+  ['terrace', 8, 3.45, 3, 0, 0.2],
+  ['master', -4, 3.45, -2.5, Math.PI, 0.2],
+  ['bedroom2', -9.5, 3.45, 3.5, Math.PI, 0.2],
 ];
 
 const server = await createServer({ server: { port: 5199, strictPort: true }, logLevel: 'error' });
@@ -38,20 +55,20 @@ try {
   for (const [name, x, y, z, yaw, pitch] of VIEWS) {
     await page.evaluate(([x, y, z, yaw, pitch]) => window.__game.debugTeleport(x, y, z, yaw, pitch), [x, y, z, yaw, pitch]);
     await page.waitForTimeout(1200);
-    await page.screenshot({ path: join(outDir, `${name}.png`) });
+    await page.screenshot({ path: join(outDir, `${name}.png`), timeout: 120000 });
   }
 
-  // Climb the stairs (top at 1.02 m) to check autostep.
-  await page.evaluate(() => window.__game.debugTeleport(6, 0, -5.5, Math.PI, 0.3));
+  // Climb the hall stair (first floor at 3.45 m) to check autostep.
+  await page.evaluate(() => window.__game.debugTeleport(-0.9, 0.15, 6.45, 0, 0.3));
   await page.keyboard.down('z');
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(8000);
   await page.keyboard.up('z');
   const y = await page.evaluate(() => window.__game.playerPosition.y);
-  console.log(`stairs climb: feet y = ${y.toFixed(2)} (expected ≈ 1.02)`);
+  console.log(`stairs climb: feet y = ${y.toFixed(2)} (expected ≈ 3.45)`);
   await page.screenshot({ path: join(outDir, 'stairs-top.png') });
 
   // Walk forward for 2 s, then run, to check animation and movement.
-  await page.evaluate(() => window.__game.debugTeleport(0, 0, 3, Math.PI, 0.25));
+  await page.evaluate(() => window.__game.debugTeleport(1, 0, 16, 0, 0.25));
   await page.keyboard.down('z');
   await page.waitForTimeout(1500);
   await page.screenshot({ path: join(outDir, 'walk.png') });

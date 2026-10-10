@@ -1,0 +1,1 @@
+{ "models": [{ "url": "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/CarConcept/glTF-Binary/CarConcept.glb", "out": "models/cars/CarConcept.glb" }] }

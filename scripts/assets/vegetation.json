@@ -1,0 +1,71 @@
+{
+  "textures": [
+    "bark_brown_02"
+  ],
+  "models": [
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/jacaranda_tree/jacaranda_tree_1k.gltf",
+      "out": "models/vegetation/jacaranda_tree/jacaranda_tree_1k.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_branches_nor_gl_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_branches_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_branches_diff_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_branches_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_branches_arm_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_branches_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_trunk_nor_gl_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_trunk_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_trunk_diff_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_trunk_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_trunk_arm_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_trunk_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_leaves_nor_gl_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_leaves_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_leaves_diff_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_leaves_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/jacaranda_tree/jacaranda_tree_leaves_arm_1k.jpg",
+      "out": "models/vegetation/jacaranda_tree/textures/jacaranda_tree_leaves_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/jacaranda_tree/jacaranda_tree.bin",
+      "out": "models/vegetation/jacaranda_tree/jacaranda_tree.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/shrub_03/shrub_03_1k.gltf",
+      "out": "models/vegetation/shrub_03/shrub_03_1k.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/4k/shrub_03/shrub_03.bin",
+      "out": "models/vegetation/shrub_03/shrub_03.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_arm_1k.jpg",
+      "out": "models/vegetation/shrub_03/textures/shrub_03_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_diff_1k.jpg",
+      "out": "models/vegetation/shrub_03/textures/shrub_03_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/shrub_03/shrub_03_nor_gl_1k.jpg",
+      "out": "models/vegetation/shrub_03/textures/shrub_03_nor_gl_1k.jpg"
+    }
+  ]
+}

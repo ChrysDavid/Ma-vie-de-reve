@@ -4,7 +4,14 @@ import { Assets } from '@/engine/assets';
 import { Environment } from '@/engine/Environment';
 import { getProfile, type QualityLevel } from '@/engine/quality';
 import { PhysicsWorld } from '@/physics/PhysicsWorld';
-import { TestGround } from '@/world/TestGround';
+import { Terrain } from '@/world/Terrain';
+import { Villa } from '@/world/Villa';
+import { Pool } from '@/world/Pool';
+import { Vegetation } from '@/world/Vegetation';
+import { Exteriors } from '@/world/Exteriors';
+import { OutdoorFurniture } from '@/world/OutdoorFurniture';
+import { Cars } from '@/world/Cars';
+import { SITE, roomAt } from '@/data/floorplan';
 import { Input } from '@/player/Input';
 import { Character } from '@/player/Character';
 import { PlayerController } from '@/player/PlayerController';
@@ -13,7 +20,7 @@ import type { useGameStore } from '@/stores/game';
 
 type GameStore = ReturnType<typeof useGameStore>;
 
-const SPAWN = new THREE.Vector3(0, 0, 3);
+const SPAWN = new THREE.Vector3(SITE.spawn.x, 0, SITE.spawn.z);
 const HDRI = 'hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr';
 const CHARACTER = 'models/character/soldier.glb';
 
@@ -23,6 +30,10 @@ export class Game {
   private readonly engine: Engine;
   private physics!: PhysicsWorld;
   private env!: Environment;
+  private terrain!: Terrain;
+  private villa!: Villa;
+  /** Phase 3 exterior modules (same lifecycle: ready / update / dispose). */
+  private outdoors: (Pool | Vegetation | Exteriors | OutdoorFurniture | Cars)[] = [];
   private player!: PlayerController;
   private character!: Character;
   private rig!: CameraRig;
@@ -53,16 +64,21 @@ export class Game {
     store.loadingLabel = 'Ciel, textures et personnage…';
     // All requests below are queued in the same tick, so onLoad fires once everything is in.
     const allLoaded = new Promise<void>((resolve) => (assets.manager.onLoad = resolve));
-    const ground = new TestGround(assets, this.physics);
+    this.terrain = new Terrain(assets, this.physics);
+    this.villa = new Villa(assets, this.physics);
+    const profile = getProfile(store.quality);
+    this.outdoors = [Pool, Vegetation, Exteriors, OutdoorFurniture, Cars].map((M) => new M(assets, this.physics, profile));
     const [hdr, gltf] = await Promise.all([assets.loadHDR(HDRI), assets.loadGLTF(CHARACTER), allLoaded]);
 
     this.env = new Environment(engine.scene, engine.renderer, hdr, getProfile(store.quality));
-    engine.scene.add(ground.group);
+    await Promise.all(this.outdoors.map((o) => o.ready));
+    engine.scene.add(this.terrain.group, this.villa.group, ...this.outdoors.map((o) => o.group));
 
     this.player = new PlayerController(this.physics, SPAWN);
     this.character = new Character(gltf);
     engine.scene.add(this.character.root);
     this.rig = new CameraRig(engine.camera, this.physics, this.player.collider);
+    this.rig.yaw = SITE.spawn.yaw;
 
     store.loadingLabel = 'Compilation des shaders…';
     await engine.renderer.compileAsync(engine.scene, engine.camera);
@@ -108,6 +124,8 @@ export class Game {
     this.character.root.position.copy(this.feet);
     this.character.update(dt, this.player.horizontalSpeed, this.player.horizontalVelocity);
     this.env.follow(this.feet);
+    for (const o of this.outdoors) o.update(dt, elapsed);
+    this.store.roomName = roomAt(this.feet.x, this.feet.y, this.feet.z)?.name ?? 'Jardin';
 
     if (playing) {
       this.rig.update(dt, this.feet);
@@ -120,13 +138,16 @@ export class Game {
   private cinematic(t: number) {
     const cam = this.engine.camera;
     const a = t * 0.06;
-    cam.position.set(Math.sin(a) * 16, 4.5 + Math.sin(t * 0.2) * 0.5, Math.cos(a) * 16);
-    cam.lookAt(0, 1.2, 0);
+    cam.position.set(Math.sin(a) * 30, 7 + Math.sin(t * 0.2) * 0.5, Math.cos(a) * 30);
+    cam.lookAt(0, 3, 0);
   }
 
   dispose() {
     this.input.dispose();
     this.player?.dispose();
+    this.villa?.dispose();
+    for (const o of this.outdoors) o.dispose();
+    this.terrain?.dispose();
     this.physics?.dispose();
     this.engine.dispose();
   }
