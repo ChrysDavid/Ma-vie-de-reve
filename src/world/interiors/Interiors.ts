@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Assets } from '@/engine/assets';
 import type { QualityProfile } from '@/engine/quality';
 import type { PhysicsWorld } from '@/physics/PhysicsWorld';
+import { roomAt } from '@/data/floorplan';
 import { InteriorKit } from './kit';
 import { furnishLiving } from './living';
 import { furnishGround } from './ground';
@@ -17,7 +18,7 @@ export class Interiors {
   constructor(assets: Assets, physics: PhysicsWorld, profile: QualityProfile) {
     this.kit = new InteriorKit(assets, physics, profile);
     this.group = this.kit.group;
-    this.ready = Promise.all([furnishLiving(this.kit), furnishGround(this.kit), furnishUpper(this.kit)]).then(() => { buildDetails(this.kit); this.kit.finalize(); });
+    this.ready = Promise.all([furnishLiving(this.kit), furnishGround(this.kit), furnishUpper(this.kit)]).then(() => { buildDetails(this.kit); this.kit.finalize(); this.kit.attachMirrors(); this.viewerDirty = true; });
   }
 
   private readonly viewer = new THREE.Vector3(1e6, 0, 1e6);
@@ -35,6 +36,8 @@ export class Interiors {
     if (!this.viewerDirty) return;
     this.viewerDirty = false;
     this.kit.cull(this.viewer, Interiors.RANGE);
+    const rm = roomAt(this.viewer.x, this.viewer.y, this.viewer.z);
+    this.kit.setMirrorRoom(rm ? rm.id : null);
   }
 
   dispose() {

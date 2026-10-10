@@ -136,7 +136,8 @@ function vanity(k: InteriorKit, f: Frame, w: number, d: number, basins: number[]
     f.box(k.chrome, 0.015, 0.015, 0.13, u, 1.02, -d / 2 + 0.13);
     f.box(k.chrome, 0.3, 0.015, 0.015, u, 0.66, d / 2 + 0.008);
   }
-  f.box(k.mirror, Math.min(w, 2.3) * 0.95, 1.05, 0.02, 0, 1.15, -d / 2 + 0.012);
+  const [mx, mz] = f.pt(0, -d / 2 + 0.012);
+  k.mirrorPlate(Math.min(w, 2.3) * 0.95, 1.05, mx, F + 1.15, mz, f.rot);
 }
 
 /** Walk-in shower: marble tray and back panel, fixed glass with a `gap`-wide entry on side `gapSide`, rain head. Origin at the stall centre, back wall at v = -d/2. */
@@ -224,7 +225,7 @@ function dressing(k: InteriorKit) {
     k.box(k.brass, 0.2, 0.012, 0.015, x, F + y + 0.28, z + s * 0.012);
   }
   world(k).model('wooden_bowl_01', cx - 0.6, cz, { y: 0.94, height: 0.1 });
-  k.box(k.mirror, 1.6, 1.9, 0.02, -10, F + 0.2, z1 - 0.011);
+  k.mirrorPlate(1.6, 1.9, -10, F + 0.2, z1 - 0.011, 0);
 }
 
 function hallway(k: InteriorKit) {
@@ -302,7 +303,7 @@ function upperLounge(k: InteriorKit) {
   w.model('modern_arm_chair_01', 0.6, -2.0, { rot: PI, height: 0.8, solid: true });
   w.model('side_table_tall_01', 2.2, -2.4, { height: 0.55 });
   w.model('desk_lamp_arm_01', 2.2, -2.4, { y: 0.55, height: 0.42, rot: -PI / 2 });
-  w.model('pachira_aquatica_01', ex - 0.3, l.z0 + EX + 0.4, { height: 1.8 });
+  w.model('pachira_aquatica_01', ex - 0.3, l.z0 + EX + 0.4, { height: 1.8, pot: true });
   pendant(w, 0.5, tvz);
 }
 

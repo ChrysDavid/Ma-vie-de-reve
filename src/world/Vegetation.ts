@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { Assets } from '@/engine/assets';
 import type { QualityProfile } from '@/engine/quality';
 import type { PhysicsWorld } from '@/physics/PhysicsWorld';
@@ -18,12 +19,12 @@ const HEDGE_HEIGHT = 1.6;
 const PALM_HEIGHT = 7; // nominal; instance scale gives 6..9 m
 const TREE_HEIGHT = 6; // nominal; instance scale gives 5..7 m
 const TRUNK_SIZE = 0.4;
-const GRASS_COUNTS = { low: 0, medium: 5000, ultra: 15000 } as const;
+const GRASS_COUNTS = { low: 0, medium: 9000, ultra: 20000 } as const;
 // Per-level triangle budget knobs (ultra = original look).
 const LEAF_TRIS_BY = { low: 20000, medium: 50000, ultra: 80000 } as const;
 const TREE_COUNT = { low: 2, medium: 3, ultra: 5 } as const;
 const HEDGE_STEP = { low: 6, medium: 2.8, ultra: 1.2 } as const;
-const SHRUB_PARTS = { low: 1, medium: 1, ultra: 99 } as const; // sub-meshes kept per shrub
+const SHRUB_PARTS = { low: 1, medium: 3, ultra: 99 } as const; // sub-meshes kept per shrub
 const BED_KEEP = { low: 0.35, medium: 1, ultra: 1 } as const; // share of bed shrubs kept
 const CHUNK = 14; // m, spatial cell of an instanced batch (frustum culling)
 const MODEL_DIR = 'models/vegetation';
@@ -169,7 +170,8 @@ function buildTuft(w: number, h: number): THREE.BufferGeometry {
     p.push(-cx, 0, -cz, cx, 0, cz, cx, h, cz, -cx, h, -cz);
     uv.push(0, 0, 1, 0, 1, 1, 0, 1);
     for (let i = 0; i < 4; i++) n.push(0, 1, 0);
-    idx.push(b, b + 1, b + 2, b, b + 2, b + 3);
+    // Both windings with up normals: a DoubleSide material would flip the back normal down and render it black.
+    idx.push(b, b + 1, b + 2, b, b + 2, b + 3, b, b + 2, b + 1, b, b + 3, b + 2);
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
@@ -183,11 +185,12 @@ function grassTexture(rnd: () => number): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const g = c.getContext('2d')!;
-  for (let i = 0; i < 11; i++) {
-    const bx = 20 + rnd() * 216, tx = bx + (rnd() - 0.5) * 70, ty = 8 + rnd() * 90, wd = 5 + rnd() * 4;
+  // Dense, short, evenly green blades: a mown lawn, not wild tufts.
+  for (let i = 0; i < 34; i++) {
+    const bx = 8 + rnd() * 240, tx = bx + (rnd() - 0.5) * 40, ty = 30 + rnd() * 90, wd = 3 + rnd() * 3;
     const grad = g.createLinearGradient(0, 256, 0, ty);
-    grad.addColorStop(0, '#27431a');
-    grad.addColorStop(1, rnd() > 0.5 ? '#9cc24a' : '#7fae3a');
+    grad.addColorStop(0, '#4a7a28');
+    grad.addColorStop(1, rnd() > 0.5 ? '#7cb544' : '#6aa63a');
     g.fillStyle = grad;
     g.beginPath();
     g.moveTo(bx - wd, 256);
@@ -260,14 +263,14 @@ export class Vegetation {
       // Hero trees are pre-decimated by scripts/optimize-vegetation.mjs.
       const file = LITE_MODELS.includes(id) ? `${id}_lite.glb` : `${id}_1k.gltf`;
       const gltf = await this.assets.loadGLTF(`${MODEL_DIR}/${id}/${file}`);
-      return this.extractParts(gltf.scene, height);
+      return this.extractParts(gltf.scene, height, kind);
     } catch {
       return this.fallback(height, kind);
     }
   }
 
   /** Bake every mesh of a glTF into one local frame: base at y = 0, centred on xz, `height` tall. */
-  private extractParts(scene: THREE.Object3D, height: number): Part[] {
+  private extractParts(scene: THREE.Object3D, height: number, kind: 'tree' | 'shrub' = 'tree'): Part[] {
     scene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(scene);
     const size = box.getSize(new THREE.Vector3()), c = box.getCenter(new THREE.Vector3());
@@ -287,6 +290,8 @@ export class Vegetation {
       mat.side = THREE.DoubleSide;
       if (mat.transparent || mat.alphaTest > 0) { mat.transparent = false; mat.alphaTest = mat.alphaTest || 0.5; mat.depthWrite = true; }
       mat.metalness = 0;
+      // shrub_03's albedo reads dry and brown: push hedges and beds toward a well-watered green.
+      if (kind === 'shrub' && !/bark|trunk|stem/i.test(label)) mat.color.setRGB(0.6, 0.95, 0.45);
       this.geos.push(geo);
       this.mats.push(mat);
       parts.push({ geo, mat });
@@ -478,7 +483,54 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
 
   // ---- beds near the facade and paths ------------------------------------------------------
 
-  private placeBeds(a: Part[], b: Part[]) {
+  /** Clipped boxwood: a few jittered, overlapping spheres (reads dense and tended, unlike the sparse scan). */
+  private boxwood(seed: number): Part[] {
+    const rnd = mulberry32(seed), parts: THREE.BufferGeometry[] = [];
+    for (let i = 0; i < 4; i++) {
+      const r = 0.28 + rnd() * 0.12;
+      const g = mergeVertices(new THREE.IcosahedronGeometry(r, 3));
+      const p = g.getAttribute('position');
+      for (let k = 0; k < p.count; k++) {
+        const f = 1 + (rnd() - 0.5) * 0.18;
+        p.setXYZ(k, p.getX(k) * f, p.getY(k) * f * 0.85, p.getZ(k) * f);
+      }
+      g.translate((rnd() - 0.5) * 0.35, r * 0.8, (rnd() - 0.5) * 0.35);
+      parts.push(g);
+    }
+    const geo = mergeGeometries(parts)!;
+    for (const g of parts) g.dispose();
+    geo.computeVertexNormals();
+    const tex = this.leafNoise(rnd);
+    const mat = new THREE.MeshStandardMaterial({ color: rnd() > 0.5 ? 0x5c8f3e : 0x6a9a46, map: tex, bumpMap: tex, bumpScale: 2.5, roughness: 0.9 });
+    this.geos.push(geo);
+    this.mats.push(mat);
+    return [{ geo, mat }];
+  }
+
+  /** Speckled leaf mass (canvas), used as albedo and bump so the bush reads as foliage, not a blob. */
+  private leafNoise(rnd: () => number): THREE.CanvasTexture {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#6f8f5a';
+    g.fillRect(0, 0, 128, 128);
+    for (let i = 0; i < 900; i++) {
+      const l = 35 + rnd() * 50;
+      g.fillStyle = `hsl(${95 + rnd() * 25}, 45%, ${l}%)`;
+      g.beginPath();
+      g.ellipse(rnd() * 128, rnd() * 128, 1.5 + rnd() * 2.5, 1 + rnd() * 1.5, rnd() * Math.PI, 0, Math.PI * 2);
+      g.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(3, 3);
+    this.textures.push(t);
+    return t;
+  }
+
+  private placeBeds(_a: Part[], _b: Part[]) {
+    const a = this.boxwood(11), b = this.boxwood(23);
     const rnd = this.rnd, pa: Place[] = [], pb: Place[] = [];
     const add = (x: number, z: number) => {
       x += (rnd() - 0.5) * 0.6; z += (rnd() - 0.5) * 0.6;
@@ -511,8 +563,8 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
     const rnd = this.rnd;
     const tex = grassTexture(rnd);
     this.textures.push(tex);
-    const mat = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 1, metalness: 0 });
-    const geo = buildTuft(0.35, 0.22);
+    const mat = new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, roughness: 1, metalness: 0 });
+    const geo = buildTuft(0.4, 0.12);
     this.geos.push(geo);
     this.mats.push(mat);
     const x0 = Math.max(PLOT.x0, FOOTPRINT.x0 - GRASS_RADIUS), x1 = Math.min(PLOT.x1, FOOTPRINT.x1 + GRASS_RADIUS);
@@ -528,7 +580,7 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
       const s = 0.7 + rnd() * 0.8;
       m.compose(pos.set(x, 0, z), q.setFromAxisAngle(up, rnd() * Math.PI), sc.set(s, s * (0.8 + rnd() * 0.5), s));
       mesh.setMatrixAt(n, m);
-      mesh.setColorAt(n, col.setRGB(0.55 + rnd() * 0.15, 0.6 + rnd() * 0.15, 0.4 + rnd() * 0.2));
+      mesh.setColorAt(n, col.setRGB(0.85 + rnd() * 0.15, 0.9 + rnd() * 0.1, 0.75 + rnd() * 0.15));
       n++;
     }
     mesh.count = n;

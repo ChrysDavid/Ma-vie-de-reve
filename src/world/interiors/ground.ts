@@ -15,6 +15,7 @@ function frame(kit: InteriorKit, fy: number, x: number, z: number, rot: number) 
   const c = Math.cos(rot), s = Math.sin(rot);
   const p = (u: number, v: number): [number, number] => [x + u * c + v * s, z - u * s + v * c];
   return {
+    fy, rot, pt: p,
     box(mat: THREE.Material, w: number, h: number, d: number, u: number, y: number, v: number, radius = 0) {
       const [px, pz] = p(u, v);
       return kit.box(mat, w, h, d, px, fy + y, pz, rot, radius);
@@ -69,7 +70,8 @@ function vanity(kit: InteriorKit, f: Fr, w: number) {
 /** Wall mirror in a thin black frame. */
 function mirror(kit: InteriorKit, f: Fr, u: number, y: number, w: number, h: number) {
   f.box(kit.blackMetal, w + 0.04, h + 0.04, 0.012, u, y - 0.02, 0.006);
-  f.box(kit.mirror, w, h, 0.004, u, y, 0.014);
+  const [px, pz] = f.pt(u, 0.012);
+  kit.mirrorPlate(w, h, px, f.fy + y, pz, f.rot, 0.004);
 }
 
 /** Wall-hung toilet with concealed cistern and flush plate. */
@@ -156,7 +158,7 @@ function hall(kit: InteriorKit) {
   kit.collider(0.5, 0.75, 0.5, sx, fy, sz);
   kit.model('horse_statue_01', { x: sx, z: sz, y: fy + 0.75, height: 0.7, rot: -0.5 });
   // Big plant in the north-east corner, entrance rug.
-  kit.model('pachira_aquatica_01', { x: r.x1 - 0.65, z: r.z0 + 0.6, height: 1.9 });
+  kit.model('pachira_aquatica_01', { x: r.x1 - 0.65, z: r.z0 + 0.6, height: 1.9, pot: true });
   kit.box(kit.fabricBeige, 1.4, 0.012, 2.6, r.x0 + 2.5, fy, zs - 1.6, 0, 0.004);
 }
 

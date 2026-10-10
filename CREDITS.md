@@ -22,6 +22,7 @@
 | Modèle Shrub 03 | `public/assets/models/vegetation/shrub_03/` | Rico Cilliers (Poly Haven) | https://polyhaven.com/a/shrub_03 | CC0 |
 | Modèle Car Concept (×3 variantes) | `public/assets/models/cars/CarConcept.glb` | Khronos Group, d'après « Free Concept Car 004 » de Unity Fan (domaine public) | https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept | CC-BY 4.0 (logos Khronos = marques) |
 | Personnage « Soldier » (Idle/Walk/Run) | `public/assets/models/character/soldier.glb` | Mixamo (Adobe), distribué dans les exemples three.js | https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf | Mixamo : libre de droits pour usage dans un projet (redistribution du fichier brut non autorisée) — **provisoire**, à remplacer par un personnage CC0 |
+| Personnage « Adventurer » (Idle/Walk/Run, sac masqué) | `public/assets/models/character/adventurer.glb` | Quaternius (Ultimate Animated Character Pack) via Poly Pizza | https://poly.pizza/m/5EGWBMpuXq | CC0 |
 | Modèle Ottoman_01 | `public/assets/models/interior/Ottoman_01.glb` | Poly Haven | https://polyhaven.com/a/Ottoman_01 | CC0 |
 | Modèle anthurium_botany_01 | `public/assets/models/interior/anthurium_botany_01.glb` | Poly Haven | https://polyhaven.com/a/anthurium_botany_01 | CC0 |
 | Modèle bar_chair_round_01 | `public/assets/models/interior/bar_chair_round_01.glb` | Poly Haven | https://polyhaven.com/a/bar_chair_round_01 | CC0 |

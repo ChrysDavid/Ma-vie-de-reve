@@ -189,7 +189,7 @@ function living(kit: InteriorKit) {
   kit.model('ceramic_vase_01', { x: sx, z: stz, y: at(0.5), height: 0.32 });
 
   // Plants and sculpture.
-  kit.model('pachira_aquatica_01', { x: east - 0.55, z: 0.5 - M - 0.5, height: 1.7, solid: true });
+  kit.model('pachira_aquatica_01', { x: east - 0.55, z: 0.5 - M - 0.5, height: 1.7, solid: true, pot: true });
   kit.model('calathea_orbifolia_01', { x: r.x0 + M + 0.4, z: r.z0 + M + 0.4, height: 0.85 });
   const px = east - 0.3, pz = r.z0 + M + 0.3;
   kit.box(kit.lacquer, 0.4, 0.9, 0.4, px, fy, pz, 0, 0.01);

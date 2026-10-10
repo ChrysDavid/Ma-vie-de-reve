@@ -6,8 +6,10 @@ type Locomotion = 'Idle' | 'Walk' | 'Run';
 const TARGET_HEIGHT = 1.78;
 // Ground speed (m/s) at which each clip plays at timeScale 1 — avoids foot sliding.
 const CLIP_SPEED: Record<Locomotion, number> = { Idle: 1, Walk: 1.5, Run: 4.2 };
-// Model forward axis correction (Soldier.glb faces -Z).
-const MODEL_YAW_OFFSET = Math.PI;
+// Model forward axis correction (Quaternius Adventurer faces +Z).
+const MODEL_YAW_OFFSET = 0;
+// Meshes hidden for a civilian look.
+const HIDDEN_MESHES = ['Backpack'];
 
 /** Animated character visual: scaling, animation blending and facing. */
 export class Character {
@@ -20,6 +22,7 @@ export class Character {
   constructor(gltf: GLTF) {
     const model = gltf.scene;
     model.traverse((o) => {
+      if (HIDDEN_MESHES.includes(o.name)) o.visible = false;
       if ((o as THREE.Mesh).isMesh) {
         o.castShadow = true;
         o.receiveShadow = true;
@@ -36,7 +39,7 @@ export class Character {
 
     this.mixer = new THREE.AnimationMixer(model);
     for (const name of ['Idle', 'Walk', 'Run'] as Locomotion[]) {
-      const clip = THREE.AnimationClip.findByName(gltf.animations, name);
+      const clip = gltf.animations.find((c) => c.name === name || c.name.split('|').pop() === name);
       if (!clip) continue;
       const action = this.mixer.clipAction(clip);
       action.enabled = true;

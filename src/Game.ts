@@ -29,7 +29,7 @@ type GameStore = ReturnType<typeof useGameStore>;
 
 const SPAWN = new THREE.Vector3(SITE.spawn.x, 0, SITE.spawn.z);
 const HDRI = 'hdri/kloofendal_48d_partly_cloudy_puresky_2k.hdr';
-const CHARACTER = 'models/character/soldier.glb';
+const CHARACTER = 'models/character/adventurer.glb';
 
 /** Orchestrates engine, physics, world and player. Lives outside Vue reactivity. */
 export class Game {

@@ -6,7 +6,7 @@ import { MeshBatcher, type BoxFaces } from './geometry';
 import { pbrMaterial, type PbrOptions } from './materials';
 import {
   CARPORT, DRIVEWAY, FENCE, FOOTPRINT, FOUNTAIN, FRONT_PATHS, GATE, PLINTH, PLOT, POOL_DECK,
-  POOL_HOUSE, STEPPING_STONES, type Rect,
+  POOL_HOUSE, ROOF, STEPPING_STONES, type Rect,
 } from '@/data/floorplan';
 
 // Local dimensions missing from floorplan.ts (candidates to move there).
@@ -266,6 +266,15 @@ export class Exteriors {
     for (let z = pathZ1 + 1.5; z < zEnd - 1; z += BOLLARD.spacing) {
       bollard(DRIVEWAY.x0 - KERB.w - 0.2, z);
       bollard(DRIVEWAY.x1 + KERB.w + 0.2, z);
+    }
+    // Rain leaders (8 cm anthracite aluminium) at the 4 corners + discreet gutter under the flat-roof edge.
+    const DP = 0.08, GUT = { d: 0.07, h: 0.06 };
+    const gx0 = FOOTPRINT.x0 + 0.5, gx1 = FOOTPRINT.x1 - 0.5;
+    for (const [face, dir] of [[FOOTPRINT.z1, 1], [FOOTPRINT.z0, -1]] as const) {
+      const a = face + (dir > 0 ? 0 : -DP), b = face + (dir > 0 ? DP : 0);
+      for (const x of [gx0, gx1]) B.box(V(x - DP / 2, 0, a), V(x + DP / 2, ROOF.y0 - GUT.h, b), all(alu));
+      const ga = face + (dir > 0 ? 0 : -GUT.d), gb = face + (dir > 0 ? GUT.d : 0);
+      B.box(V(FOOTPRINT.x0, ROOF.y0 - GUT.h, ga), V(FOOTPRINT.x1, ROOF.y0, gb), all(alu));
     }
     this.flush(B);
     this.flush(G, false);

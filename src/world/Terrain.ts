@@ -29,8 +29,10 @@ export class Terrain {
         float n = 0.5 + 0.25 * sin(q.x * 0.045 + sin(q.y * 0.031) * 2.0) + 0.25 * sin(q.y * 0.057 + sin(q.x * 0.023 + 1.3) * 2.0);
         float n2 = 0.5 + 0.5 * sin(q.x * 0.11 + q.y * 0.083 + sin(q.x * 0.07) * 1.5);
         vec4 mixed = mix(mix(texA, texB, 0.45), texC, 0.25 + 0.35 * n);
-        vec3 tint = mix(vec3(0.86, 0.95, 0.78), vec3(1.08, 1.02, 0.86), n2);
-        diffuseColor *= mixed * vec4(tint, 1.0) * (0.78 + 0.4 * n) * (0.85 + 0.3 * texB.g);`,
+        // Recolour the (brownish, leaf-littered) texture into a lush mown lawn: keep only its luminance detail.
+        float lum = dot(mixed.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 lawn = mix(vec3(0.045, 0.15, 0.018), vec3(0.085, 0.21, 0.03), n2);
+        diffuseColor.rgb = lawn * clamp(lum * 4.0, 0.55, 1.5) * (0.85 + 0.3 * n);`,
         );
     };
     // 1 m thick slab (top at y = 0) with a rectangular hole for the pool and its catch basin.

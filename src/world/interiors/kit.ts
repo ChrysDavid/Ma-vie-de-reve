@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { Assets } from '@/engine/assets';
 import type { QualityProfile } from '@/engine/quality';
@@ -22,6 +23,10 @@ export interface Place {
   scale?: number;
   /** Adds a box collider from the placed bounding box. */
   solid?: boolean;
+  /** Variant letter for packs holding several props side by side (`<id>_a`, `<id>_b`…); default picked from x/z. */
+  variant?: string;
+  /** Plants shipped without a pot: adds a ceramic planter and sets the plant in it (`height` = total). */
+  pot?: boolean;
 }
 
 /** Floor top (finished) of a level. */
@@ -43,6 +48,7 @@ export class InteriorKit {
   /** Props cast shadows except on the low profile. */
   private get shadows() { return this.profile.level !== 'low'; }
   private readonly protos = new Map<string, THREE.Object3D>();
+  private readonly variants = new Map<string, THREE.Object3D>();
   private readonly geos: THREE.BufferGeometry[] = [];
   private readonly mats: THREE.Material[] = [];
 
@@ -62,6 +68,7 @@ export class InteriorKit {
   readonly fabricBlue = this.mat({ color: 0x3d5468, roughness: 0.95 });
   readonly towel = this.mat({ color: 0xf2efe8, roughness: 1 });
   readonly screen = this.mat({ color: 0x050607, roughness: 0.08, metalness: 0.2 });
+  readonly soil = this.mat({ color: 0x2b2019, roughness: 1 });
   readonly mirror = this.mat({ color: 0xffffff, metalness: 1, roughness: 0.02 });
   readonly glass = this.track(new THREE.MeshPhysicalMaterial({
     color: 0xeef4f2, roughness: 0.03, ior: 1.5, transparent: true, opacity: 0.2, depthWrite: false, side: THREE.DoubleSide,
@@ -104,9 +111,46 @@ export class InteriorKit {
     return p;
   }
 
+  /**
+   * Some Poly Haven packs (pachira, calathea…) lay several variants side by side, meshes suffixed
+   * `_a`, `_b`… Keeping them all scatters plants over metres and through walls: keep only one.
+   */
+  private variant(id: string, p: Place): THREE.Object3D {
+    const src = this.proto(id);
+    const letters = new Set<string>();
+    src.traverse((o) => {
+      const m = /_([a-z])$/.exec(o.name);
+      if ((o as THREE.Mesh).isMesh && m) letters.add(m[1]);
+    });
+    if (letters.size < 2) return src;
+    const list = [...letters].sort();
+    const v = p.variant && letters.has(p.variant) ? p.variant : list[Math.abs(Math.round(p.x * 7 + p.z * 13)) % list.length];
+    const key = `${id}|${v}`;
+    let out = this.variants.get(key);
+    if (!out) {
+      out = src.clone();
+      const drop: THREE.Object3D[] = [];
+      out.traverse((o) => {
+        const m = /_([a-z])$/.exec(o.name);
+        if ((o as THREE.Mesh).isMesh && m && m[1] !== v) drop.push(o);
+      });
+      for (const o of drop) o.removeFromParent();
+      this.variants.set(key, out);
+    }
+    return out;
+  }
+
   /** Places a clone of a prop, its bottom on the floor (or `y`), centred on (x, z). */
   model(id: string, p: Place): THREE.Object3D {
-    const src = this.proto(id);
+    if (p.pot) {
+      const total = p.height ?? 1;
+      const ph = Math.min(0.45, total * 0.24), pr = ph * 0.62, y0 = p.y ?? floorY(p.level ?? 0);
+      this.cyl(this.graphite, pr * 0.78, ph, p.x, y0, p.z, 28, pr);
+      this.cyl(this.soil, pr * 0.95, 0.01, p.x, y0 + ph - 0.04, p.z, 24);
+      if (p.solid) this.collider(pr * 2, ph, pr * 2, p.x, y0, p.z);
+      return this.model(id, { ...p, pot: false, solid: false, y: y0 + ph - 0.05, height: total - ph + 0.05 });
+    }
+    const src = this.variant(id, p);
     const box = new THREE.Box3().setFromObject(src);
     const size = box.getSize(new THREE.Vector3());
     const s = p.scale ?? (p.height ? p.height / size.y : 1);
@@ -146,6 +190,40 @@ export class InteriorKit {
     m.castShadow = m.receiveShadow = this.shadows;
     this.group.add(m);
     return m;
+  }
+
+  private readonly reflectors: { mesh: Reflector; roomId: string | null }[] = [];
+  private static readonly MAX_MIRRORS = 6;
+
+  /**
+   * Mirror plate (centre x, z; bottom at y; facing (sin rot, cos rot)). Real planar Reflector on medium/ultra
+   * (max 6, kept out of the merge, shown only when the viewer is in its room); metal plate otherwise.
+   */
+  mirrorPlate(w: number, h: number, x: number, y: number, z: number, rot: number, depth = 0.02) {
+    if (this.profile.level === 'low' || this.reflectors.length >= InteriorKit.MAX_MIRRORS) {
+      this.box(this.mirror, w, h, depth, x, y, z, rot);
+      return;
+    }
+    const res = (this.profile.level === 'ultra' ? 512 : 256) * this.profile.pixelRatio;
+    const mesh = new Reflector(new THREE.PlaneGeometry(w, h), {
+      textureWidth: Math.round(res), textureHeight: Math.round(res), clipBias: 0.003, color: 0xd9dede,
+    });
+    const sx = Math.sin(rot), cz = Math.cos(rot);
+    mesh.position.set(x + sx * (depth / 2 + 0.001), y + h / 2, z + cz * (depth / 2 + 0.001));
+    mesh.rotation.y = rot;
+    mesh.visible = false;
+    const rm = roomAt(x + sx * 0.4, y + h / 2, z + cz * 0.4);
+    this.reflectors.push({ mesh, roomId: rm ? rm.id : null });
+  }
+
+  /** Adds the real mirrors to the group (call after finalize, which clears the group). */
+  attachMirrors() {
+    for (const r of this.reflectors) this.group.add(r.mesh);
+  }
+
+  /** Only the mirrors of the viewer's room render their reflection. */
+  setMirrorRoom(roomId: string | null) {
+    for (const r of this.reflectors) r.mesh.visible = roomId !== null && r.roomId === roomId;
   }
 
   /** Box collider (centre x, z; bottom at y). */
@@ -214,6 +292,7 @@ export class InteriorKit {
   }
 
   dispose() {
+    for (const r of this.reflectors) { r.mesh.geometry.dispose(); r.mesh.dispose(); }
     for (const g of this.geos) g.dispose();
     for (const m of this.mats) m.dispose();
   }
