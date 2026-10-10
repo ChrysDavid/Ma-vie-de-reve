@@ -1,0 +1,47 @@
+// Downloads CC0 assets (Poly Haven API + three.js example models) into public/assets/.
+// Usage: node scripts/fetch-assets.mjs [--res 2k]
+import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+const ROOT = join(import.meta.dirname, '..', 'public', 'assets');
+const resArg = process.argv.indexOf('--res');
+const TEX_RES = resArg > 0 ? process.argv[resArg + 1] : '1k';
+
+const HDRIS = [{ id: 'kloofendal_48d_partly_cloudy_puresky', res: '2k' }];
+// Poly Haven map key -> local suffix
+const MAPS = { Diffuse: 'diff', nor_gl: 'nor', Rough: 'rough', AO: 'ao' };
+const TEXTURES = ['aerial_grass_rock', 'concrete_floor_02', 'wood_floor_deck'];
+const MODELS = [
+  { url: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/models/gltf/Soldier.glb', out: 'models/character/soldier.glb' },
+];
+
+async function download(url, out) {
+  const dest = join(ROOT, out);
+  if (existsSync(dest)) return console.log(`skip ${out}`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
+  console.log(`ok   ${out}`);
+}
+
+async function files(id) {
+  const res = await fetch(`https://api.polyhaven.com/files/${id}`);
+  if (!res.ok) throw new Error(`Poly Haven: unknown asset ${id}`);
+  return res.json();
+}
+
+for (const { id, res } of HDRIS) {
+  const f = await files(id);
+  await download(f.hdri[res].hdr.url, `hdri/${id}_${res}.hdr`);
+}
+
+for (const id of TEXTURES) {
+  const f = await files(id);
+  for (const [key, suffix] of Object.entries(MAPS)) {
+    const url = f[key]?.[TEX_RES]?.jpg?.url;
+    if (url) await download(url, `textures/${id}/${suffix}.jpg`);
+  }
+}
+
+for (const m of MODELS) await download(m.url, m.out);

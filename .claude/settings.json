@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "includeCoAuthoredBy": false,
+  "attribution": { "commit": "", "pr": "" },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npx vite *)",
+      "Bash(npx vue-tsc *)",
+      "Bash(npx playwright *)",
+      "Bash(npx gltf-transform *)",
+      "Bash(node scripts/*)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "WebFetch(domain:polyhaven.com)",
+      "WebFetch(domain:api.polyhaven.com)",
+      "WebFetch(domain:ambientcg.com)",
+      "WebFetch(domain:threejs.org)",
+      "WebFetch(domain:code.claude.com)"
+    ],
+    "ask": [
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)",
+      "Read(./node_modules/**)",
+      "Read(./dist/**)",
+      "Read(./public/assets/**/*.glb)",
+      "Read(./public/assets/**/*.ktx2)",
+      "Read(./public/assets/**/*.hdr)"
+    ]
+  },
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre-compact.mjs\"" }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact|clear",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session-context.mjs\"" }
+        ]
+      }
+    ]
+  }
+}
