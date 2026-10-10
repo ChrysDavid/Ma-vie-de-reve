@@ -13,11 +13,23 @@ export class Engine {
   private readonly resizeObserver: ResizeObserver;
   private fpsFrames = 0;
   private fpsTime = 0;
+  private maxRatio = 1;
+  private ratio = 1;
+  private perfFrames = 0;
+  private perfTime = 0;
+  private lastChange = 0;
+  private running = false;
+  private readonly onVisibility = () => {
+    if (document.hidden) this.pause();
+    else if (this.running) this.resume();
+  };
   onFps?: (fps: number) => void;
 
   constructor(readonly canvas: HTMLCanvasElement, quality: QualityProfile) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: quality.antialias, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(quality.pixelRatio);
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: quality.antialias, powerPreference: quality.level === 'ultra' ? 'high-performance' : 'default' });
+    this.maxRatio = Math.min(window.devicePixelRatio || 1, quality.pixelRatio);
+    this.ratio = this.maxRatio;
+    this.renderer.setPixelRatio(this.ratio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.AgXToneMapping;
     this.renderer.toneMappingExposure = 1.0;
@@ -27,6 +39,7 @@ export class Engine {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
     this.resize();
+    document.addEventListener('visibilitychange', this.onVisibility);
   }
 
   onFrame(cb: FrameCallback) {
@@ -34,7 +47,39 @@ export class Engine {
   }
 
   start() {
+    this.running = true;
+    if (!document.hidden) this.resume();
+  }
+
+  /** Stops rendering (hidden tab) so the GPU is released. */
+  private pause() {
+    this.renderer.setAnimationLoop(null);
+  }
+
+  private resume() {
+    this.perfFrames = 0;
+    this.perfTime = 0;
     this.renderer.setAnimationLoop((t) => this.frame(t));
+  }
+
+  /** Adaptive resolution: ~2 s window, hysteresis (<40 down, >58 up), min 3 s between changes. */
+  private adapt(dt: number, elapsed: number) {
+    this.perfFrames++;
+    this.perfTime += dt;
+    if (this.perfTime < 2) return;
+    const fps = this.perfFrames / this.perfTime;
+    this.perfFrames = 0;
+    this.perfTime = 0;
+    if (elapsed - this.lastChange < 3) return;
+    let next = this.ratio;
+    if (fps < 40) next = Math.max(0.6, this.ratio - 0.1);
+    else if (fps > 58) next = Math.min(this.maxRatio, this.ratio + 0.1);
+    next = Math.round(next * 10) / 10;
+    if (next === this.ratio) return;
+    this.ratio = next;
+    this.lastChange = elapsed;
+    this.renderer.setPixelRatio(next);
+    this.resize();
   }
 
   private frame(timestamp: number) {
@@ -43,6 +88,7 @@ export class Engine {
     const elapsed = this.timer.getElapsed();
     for (const cb of this.callbacks) cb(dt, elapsed);
     this.renderer.render(this.scene, this.camera);
+    this.adapt(dt, elapsed);
     this.fpsFrames++;
     this.fpsTime += dt;
     if (this.fpsTime >= 1) {
@@ -62,6 +108,7 @@ export class Engine {
   }
 
   dispose() {
+    document.removeEventListener('visibilitychange', this.onVisibility);
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
     this.timer.dispose();

@@ -13,7 +13,7 @@ _Mis à jour : 2026-10-10 (fin Phase 4)_
 
 ## En cours
 - Prochaine étape : **Phase 5** (éclairage intérieur, lumières, reflets, post-FX, jour/nuit).
-- Rien de commité depuis 3a31199 (Phases 3-fix + 4 en local).
+- Phases 3-fix + 4 poussées sur main (36dbdbb) ; remote = ChrysDavid/Ma-vie-de-reve.
 
 ## À reprendre plus tard
 - Canapés sofa_02/sofa_03 = Chesterfield classiques, peu contemporains → canapé d'angle procédural moderne.

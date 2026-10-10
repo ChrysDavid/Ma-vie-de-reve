@@ -18,7 +18,14 @@ const HEDGE_HEIGHT = 1.6;
 const PALM_HEIGHT = 7; // nominal; instance scale gives 6..9 m
 const TREE_HEIGHT = 6; // nominal; instance scale gives 5..7 m
 const TRUNK_SIZE = 0.4;
-const GRASS_COUNTS = { low: 0, medium: 8000, ultra: 20000 } as const;
+const GRASS_COUNTS = { low: 0, medium: 5000, ultra: 15000 } as const;
+// Per-level triangle budget knobs (ultra = original look).
+const LEAF_TRIS_BY = { low: 20000, medium: 50000, ultra: 80000 } as const;
+const TREE_COUNT = { low: 2, medium: 3, ultra: 5 } as const;
+const HEDGE_STEP = { low: 6, medium: 2.8, ultra: 1.2 } as const;
+const SHRUB_PARTS = { low: 1, medium: 1, ultra: 99 } as const; // sub-meshes kept per shrub
+const BED_KEEP = { low: 0.35, medium: 1, ultra: 1 } as const; // share of bed shrubs kept
+const CHUNK = 14; // m, spatial cell of an instanced batch (frustum culling)
 const MODEL_DIR = 'models/vegetation';
 
 interface Part { geo: THREE.BufferGeometry; mat: THREE.MeshStandardMaterial }
@@ -124,7 +131,6 @@ function buildPalm(H: number, bend: number, rnd: () => number) {
 
 /** Cross-quad tuft (3 quads at 60 deg), up-facing normals for soft lighting. */
 const LITE_MODELS = ['jacaranda_tree'];
-const LEAF_TRIS = 80000; // max leaf triangles per tree model
 
 function triCount(g: THREE.BufferGeometry) {
   return (g.index ? g.index.count : g.attributes.position.count) / 3;
@@ -204,9 +210,11 @@ export class Vegetation {
   private readonly textures: THREE.Texture[] = [];
   private readonly meshes: THREE.InstancedMesh[] = [];
   private rnd = mulberry32(20240611);
+  private readonly leafTris: number;
 
   constructor(private readonly assets: Assets, private readonly physics: PhysicsWorld, private readonly quality: QualityProfile) {
     this.group.name = 'Vegetation';
+    this.leafTris = LEAF_TRIS_BY[quality.level];
     this.ready = this.build();
   }
 
@@ -225,17 +233,26 @@ export class Vegetation {
   // ---- build -------------------------------------------------------------------------------
 
   private async build() {
-    const [tree, shrubA, shrubB] = await Promise.all([
+    let [tree, shrubA, shrubB] = await Promise.all([
       this.loadModel('jacaranda_tree', TREE_HEIGHT, 'tree'),
       this.loadModel('shrub_03', 0.9, 'shrub'),
       this.loadModel('shrub_03', 1, 'shrub'),
     ]);
-    const hedge = await this.loadModel('shrub_03', HEDGE_HEIGHT, 'shrub');
+    let hedge = await this.loadModel('shrub_03', HEDGE_HEIGHT, 'shrub');
+    const keep = SHRUB_PARTS[this.quality.level];
+    shrubA = this.biggest(shrubA, keep);
+    shrubB = this.biggest(shrubB, keep);
+    hedge = this.biggest(hedge, keep);
     this.placePalms();
     this.placeTrees(tree);
     this.placeHedges(hedge);
     this.placeBeds(shrubA, shrubB);
     this.placeGrass();
+  }
+
+  /** Keeps the n sub-meshes with the most triangles. */
+  private biggest(parts: Part[], n: number): Part[] {
+    return parts.length <= n ? parts : [...parts].sort((a, b) => triCount(b.geo) - triCount(a.geo)).slice(0, n);
   }
 
   private async loadModel(id: string, height: number, kind: 'tree' | 'shrub'): Promise<Part[]> {
@@ -266,7 +283,7 @@ export class Vegetation {
       const src = (Array.isArray(m.material) ? m.material[0] : m.material) as THREE.MeshStandardMaterial;
       let geo = m.geometry.clone().applyMatrix4(new THREE.Matrix4().multiplyMatrices(norm, m.matrixWorld));
       const mat = src.clone();
-      if (/leaf|leaves/i.test(label) && triCount(geo) > LEAF_TRIS) geo = thinCards(geo, Math.ceil(triCount(geo) / LEAF_TRIS));
+      if (/leaf|leaves/i.test(label) && triCount(geo) > this.leafTris) geo = thinCards(geo, Math.ceil(triCount(geo) / this.leafTris));
       mat.side = THREE.DoubleSide;
       if (mat.transparent || mat.alphaTest > 0) { mat.transparent = false; mat.alphaTest = mat.alphaTest || 0.5; mat.depthWrite = true; }
       mat.metalness = 0;
@@ -357,7 +374,17 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
   private place(model: Part[], places: Place[], cast: boolean, amp: number) {
     if (!places.length) return;
     const mx = this.matrices(places);
-    for (const part of model) this.instanced(part, mx, cast, amp);
+    // Spatial chunks so frustum culling works per batch.
+    const cells = new Map<string, number[]>();
+    places.forEach((p, i) => {
+      const k = `${Math.floor(p.x / CHUNK)},${Math.floor(p.z / CHUNK)}`;
+      const l = cells.get(k);
+      if (l) l.push(i); else cells.set(k, [i]);
+    });
+    for (const ids of cells.values()) {
+      const sub = ids.map((i) => mx[i]);
+      for (const part of model) this.instanced(part, sub, cast, amp);
+    }
   }
 
   private trunkCollider(x: number, z: number, h: number) {
@@ -402,7 +429,7 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
 
   private placeTrees(model: Part[]) {
     const rnd = this.rnd, pts: Place[] = [];
-    const n = 5, span = PLOT.x1 - PLOT.x0 - 12;
+    const n = TREE_COUNT[this.quality.level], span = PLOT.x1 - PLOT.x0 - 12;
     for (let i = 0; i < n; i++) {
       const x = PLOT.x0 + 6 + (span * (i + 0.5)) / n + (rnd() - 0.5) * 3;
       const z = PLOT.z0 + 3.4 + rnd() * 1.6;
@@ -415,7 +442,8 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
   // ---- hedges ------------------------------------------------------------------------------
 
   private placeHedges(model: Part[]) {
-    const rnd = this.rnd, pts: Place[] = [], step = 1.2, thick = 0.9;
+    const rnd = this.rnd, pts: Place[] = [], step = HEDGE_STEP[this.quality.level], thick = 0.9;
+    const widen = 1 + (step / 1.2 - 1) * 0.5; // fewer bushes -> wider ones, hedge stays continuous
     const c = HEDGE_INSET;
     const sides: { a: [number, number]; b: [number, number] }[] = [
       { a: [PLOT.x0 + c, PLOT.z0 + c], b: [PLOT.x1 - c, PLOT.z0 + c] },
@@ -440,7 +468,7 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
       for (let i = 0; i <= n; i++) {
         const t = i / n, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t;
         if (!isFree(x, z, 0.5, 0)) { flush(); continue; }
-        pts.push({ x, z, yaw: rnd() * Math.PI * 2, s: 0.95 + rnd() * 0.15, sxz: 1.15 + rnd() * 0.2 });
+        pts.push({ x, z, yaw: rnd() * Math.PI * 2, s: 0.95 + rnd() * 0.15, sxz: (1.15 + rnd() * 0.2) * widen });
         run.push([x, z]);
       }
       flush();
@@ -455,6 +483,7 @@ ${flex > 0 ? 'attribute float aFlex;' : ''}`)
     const add = (x: number, z: number) => {
       x += (rnd() - 0.5) * 0.6; z += (rnd() - 0.5) * 0.6;
       if (!isFree(x, z, 0.5)) return;
+      if (rnd() > BED_KEEP[this.quality.level]) return;
       (rnd() > 0.5 ? pa : pb).push({ x, z, yaw: rnd() * Math.PI * 2, s: 0.7 + rnd() * 0.6 });
     };
     const fz = FOOTPRINT.z1 + FOOTPRINT_EXTRA + 0.7;
