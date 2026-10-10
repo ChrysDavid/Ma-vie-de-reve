@@ -11,7 +11,16 @@ export class Terrain {
   private readonly material: THREE.MeshStandardMaterial;
 
   constructor(assets: Assets, private readonly physics: PhysicsWorld) {
-    this.material = pbrMaterial(assets, 'aerial_grass_rock', { repeat: 1 / 4 });
+    this.material = pbrMaterial(assets, 'leafy_grass', { repeat: 1 / 2.5, color: 0xd8e0c8 });
+    // Break tile repetition: blend in a second, larger-scale sample of the same albedo.
+    this.material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `vec4 texA = texture2D(map, vMapUv);
+        vec4 texB = texture2D(map, vMapUv * 0.173 + vec2(0.37, 0.61));
+        diffuseColor *= mix(texA, texB, 0.45) * (0.85 + 0.3 * texB.g);`,
+      );
+    };
     // 1 m thick slab (top at y = 0) with a rectangular hole for the pool and its catch basin.
     const s = SITE.halfSize + 10;
     const hx0 = POOL.rect.x0, hx1 = POOL.rect.x1, hz0 = POOL.basin.z0, hz1 = POOL.rect.z1;

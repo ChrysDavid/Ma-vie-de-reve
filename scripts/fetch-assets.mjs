@@ -11,7 +11,7 @@ const HDRIS = [{ id: 'kloofendal_48d_partly_cloudy_puresky', res: '2k' }];
 // Poly Haven map key -> local suffix
 const MAPS = { Diffuse: 'diff', nor_gl: 'nor', Rough: 'rough', AO: 'ao' };
 const TEXTURES = [
-  'aerial_grass_rock', 'concrete_floor_02', 'wood_floor_deck',
+  'concrete_floor_02', 'wood_floor_deck',
   'white_plaster_02', 'castle_wall_slates', 'oak_wood_planks', 'large_floor_tiles_02', 'laminate_floor_02', 'marble_01',
 ];
 const MODELS = [

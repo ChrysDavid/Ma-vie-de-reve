@@ -33,6 +33,10 @@ const VIEWS = [
   ['terrace', 8, 3.45, 3, 0, 0.2],
   ['master', -4, 3.45, -2.5, Math.PI, 0.2],
   ['bedroom2', -9.5, 3.45, 3.5, Math.PI, 0.2],
+  ['office', 11.3, 0.15, 6.3, Math.PI / 4, 0.25],
+  ['dining', -2, 0.15, -0.2, 0, 0.25],
+  ['master-bath', -8, 3.45, -4, Math.PI / 4, 0.25],
+  ['dressing', -7.8, 3.45, -1.5, Math.PI / 2, 0.25],
 ];
 
 const server = await createServer({ server: { port: 5199, strictPort: true }, logLevel: 'error' });

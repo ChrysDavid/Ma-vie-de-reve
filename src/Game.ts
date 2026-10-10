@@ -11,6 +11,7 @@ import { Vegetation } from '@/world/Vegetation';
 import { Exteriors } from '@/world/Exteriors';
 import { OutdoorFurniture } from '@/world/OutdoorFurniture';
 import { Cars } from '@/world/Cars';
+import { Interiors } from '@/world/interiors/Interiors';
 import { SITE, roomAt } from '@/data/floorplan';
 import { Input } from '@/player/Input';
 import { Character } from '@/player/Character';
@@ -33,7 +34,7 @@ export class Game {
   private terrain!: Terrain;
   private villa!: Villa;
   /** Phase 3 exterior modules (same lifecycle: ready / update / dispose). */
-  private outdoors: (Pool | Vegetation | Exteriors | OutdoorFurniture | Cars)[] = [];
+  private outdoors: (Pool | Vegetation | Exteriors | OutdoorFurniture | Cars | Interiors)[] = [];
   private player!: PlayerController;
   private character!: Character;
   private rig!: CameraRig;
@@ -67,7 +68,7 @@ export class Game {
     this.terrain = new Terrain(assets, this.physics);
     this.villa = new Villa(assets, this.physics);
     const profile = getProfile(store.quality);
-    this.outdoors = [Pool, Vegetation, Exteriors, OutdoorFurniture, Cars].map((M) => new M(assets, this.physics, profile));
+    this.outdoors = [Pool, Vegetation, Exteriors, OutdoorFurniture, Cars, Interiors].map((M) => new M(assets, this.physics, profile));
     const [hdr, gltf] = await Promise.all([assets.loadHDR(HDRI), assets.loadGLTF(CHARACTER), allLoaded]);
 
     this.env = new Environment(engine.scene, engine.renderer, hdr, getProfile(store.quality));

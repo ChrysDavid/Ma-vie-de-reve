@@ -10,6 +10,8 @@
     "preview": "vite preview",
     "assets:fetch": "node scripts/fetch-assets.mjs",
     "shots": "node scripts/shots.mjs",
+    "assets:models": "node scripts/fetch-models.mjs",
+    "assets:simplify": "node scripts/simplify-models.mjs",
     "assets:optimize": "node scripts/optimize-vegetation.mjs"
   },
   "dependencies": {
@@ -29,6 +31,7 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "meshoptimizer": "^1.3.0",
     "playwright": "^1.64.0",
+    "sharp": "^0.35.5",
     "typescript": "~5.9",
     "vite": "^8.3.4",
     "vue-tsc": "^3.3.13"
